@@ -39,7 +39,7 @@ class Locale implements MiddlewareInterface
 		$httplang = (string) array_key_exists('HTTP_ACCEPT_LANGUAGE', $server) ? strtolower(substr($server['HTTP_ACCEPT_LANGUAGE'], 0, 2)) : ($this->settings['language'] ?? 'en');
 		$uri = trim(substr((string) $fulluri, strlen((string) $basepath)));
 		$uri = empty($uri) ? '/' : $uri;
-		if ($uri === '/') {
+		if (($uri === '/') && ($this->active)) {
 			$redirectLang = in_array($httplang, $this->languages) ? $httplang : $this->settings['language'];
 			$redirectUri = rtrim($basePath, '/') . '/' . $redirectLang . '/';
 			$response = new \Slim\Psr7\Response(301); // Crea una risposta con codice 301

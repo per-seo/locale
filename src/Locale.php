@@ -37,7 +37,14 @@ class Locale implements MiddlewareInterface
 		$fulluri = (string) $request->getUri()->getPath();
 		$basepath = (string) $this->app->getBasePath();
 		$httplang = (string) array_key_exists('HTTP_ACCEPT_LANGUAGE', $server) ? strtolower(substr($server['HTTP_ACCEPT_LANGUAGE'], 0, 2)) : ($this->settings['language'] ?? 'en');
-		$uri = substr((string) $fulluri, strlen((string) $basepath));
+		$uri = trim(substr((string) $fulluri, strlen((string) $basepath)));
+		$uri = empty($uri) ? '/' : $uri;
+		if ($uri === '/') {
+			$redirectLang = in_array($httplang, $this->languages) ? $httplang : $this->settings['language'];
+			$redirectUri = rtrim($basePath, '/') . '/' . $redirectLang . '/';
+			$response = new \Slim\Psr7\Response(301); // Crea una risposta con codice 301
+			return $response->withHeader('Location', $redirectUri);
+		}
 		if (($request->getMethod() == 'GET') && ($this->active) && ($uri != '/')) {
 			preg_match("/^\/(([a-zA-Z]{2})$|([a-zA-Z]{2})\/)/",$uri,$matches);
 			$curlang = (!empty($matches[1]) ? preg_replace('/[^\da-zA-Z]/i', '', $matches[1]) : NULL);

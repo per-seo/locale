@@ -62,6 +62,60 @@ class LocaleMiddlewareTest extends TestCase
         $response = $localeMiddleware->process($request, $handler);
     }
 
+    public function testRedirectsToDetectedLanguage(): void
+    {
+        $serverRequestFactory = new ServerRequestFactory();
+        $request = $serverRequestFactory->createServerRequest('GET', '/', ['HTTP_ACCEPT_LANGUAGE' => 'it']);
+
+        $this->appMock->method('getBasePath')->willReturn('/base');
+
+        $localeMiddleware = new Locale($this->appMock, $this->containerMock);
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler->expects($this->never())->method('handle');
+
+        $response = $localeMiddleware->process($request, $handler);
+
+        $this->assertEquals(301, $response->getStatusCode());
+        $this->assertEquals('/it/', $response->getHeaderLine('Location'));
+    }
+	
+	public function testRedirectsToDefaultLanguageWhenNotSupported(): void
+	{
+		$serverRequestFactory = new ServerRequestFactory();
+		$request = $serverRequestFactory->createServerRequest('GET', '/', ['HTTP_ACCEPT_LANGUAGE' => 'fr']);
+	
+		// Base path simulato
+		$this->appMock->method('getBasePath')->willReturn('/base');
+	
+		$localeMiddleware = new Locale($this->appMock, $this->containerMock);
+	
+		$handler = $this->createMock(RequestHandlerInterface::class);
+		$handler->expects($this->never())->method('handle');
+	
+		$response = $localeMiddleware->process($request, $handler);
+	
+		$this->assertEquals(301, $response->getStatusCode());
+		$this->assertEquals('/en/', $response->getHeaderLine('Location')); // Considera il base path
+	}
+
+    public function testDoesNotRedirectForNonRootUri(): void
+    {
+        $serverRequestFactory = new ServerRequestFactory();
+        $request = $serverRequestFactory->createServerRequest('GET', '/it/test', ['HTTP_ACCEPT_LANGUAGE' => 'it']);
+
+        $this->appMock->method('getBasePath')->willReturn('');
+
+        $localeMiddleware = new Locale($this->appMock, $this->containerMock);
+
+        $handler = $this->createMock(RequestHandlerInterface::class);
+        $handler->expects($this->once())->method('handle');
+
+        $response = $localeMiddleware->process($request, $handler);
+
+        $this->assertNotEquals(301, $response->getStatusCode());
+    }
+
     public function testProcessThrowsHttpNotFoundExceptionForInvalidLocale(): void
     {
         $this->expectException(HttpNotFoundException::class);
